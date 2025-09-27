@@ -9,7 +9,7 @@ class Plugin extends PluginBase
     {
         return [
             'name'        => 'AJAX Dispatcher',
-            'description' => A centralized component for handling AJAX requests in WinterCMS Blocks.',
+            'description' => 'A centralized component for handling AJAX requests in WinterCMS Blocks.',
             'author'      => 'Helmut Kaufmann, shoftware@mercator.li',
             'icon'        => 'icon-bolt'
         ];
