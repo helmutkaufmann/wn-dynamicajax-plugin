@@ -1,202 +1,201 @@
 # AJAX Dispatcher Plugin for Winter CMS Blocks
 
+![Blocks Plugin Banner](https://github.com/wintercms/wn-blocks-plugin/blob/main/.github/banner.png?raw=true)
+
 A powerful utility component for Winter CMS that allows you to call PHP functions and class methods directly from your theme files via AJAX. This plugin provides a centralized dispatcher, eliminating the need to create separate components for simple, theme-level AJAX interactions.
 
-[](https://github.com/wintercms/wn-blocks-plugin/blob/main/LICENSE)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
------
+---
 
 ## Core Concept
 
 In a typical Winter CMS workflow, adding AJAX functionality to the frontend requires defining a component and an AJAX handler within it. While powerful, this can be cumbersome for small, repeated interactions, especially in a block-based or modular theme design.
 
-This plugin solves that problem by providing a single, reusable component (`ajaxDispatcher`) that acts as a router for your theme-level AJAX logic. You can keep your PHP logic in simple `.php` files within your theme, and call them directly from your frontend markup using `data-` attributes. This is ideal for:
+This plugin solves that problem by providing a single, reusable component (`ajaxDispatcher`) that acts as a router for your theme's AJAX logic. You can keep your PHP logic in simple `.php` files within your theme, and call them directly from your frontend markup using `data-` attributes.
 
-  * **Block-based themes**: Allowing each block to have its own self-contained logic.
-  * **Simple interactions**: Adding dynamic functionality without the boilerplate of a full component.
-  * **Rapid prototyping**: Quickly wiring up server-side logic to your frontend.
-
------
+---
 
 ## Features
 
-  * **Centralized AJAX Handling**: A single component manages all your theme-level AJAX requests.
-  * **Flexible Handler Calls**: Execute both procedural functions and class methods.
-  * **Automatic Parameter Injection**: The dispatcher intelligently matches data from your request (form inputs, `data-request-data`) to the parameters of your PHP handler function by name.
-  * **Clean Frontend Markup**: Keeps your `.block` or `.htm` files focused on presentation, with clear and declarative AJAX triggers.
-  * **Reduces Boilerplate**: Avoid creating numerous single-purpose components for simple tasks.
+-   **Centralized AJAX Handling**: A single component manages all your theme-level AJAX requests.
+-   **Flexible Handler Calls**: Execute both procedural functions and class methods.
+-   **Automatic Parameter Injection**: The dispatcher intelligently matches data from your request (form inputs, `data-request-data`) to the parameters of your PHP handler function by name.
+-   **Secure Parameter Handling**: Automatically decrypts parameters prefixed with `encrypted_` to prevent client-side tampering of sensitive data like record IDs.
+-   **Clean Frontend Markup**: Keeps your `.block` or `.htm` files focused on presentation, with clear and declarative AJAX triggers.
+-   **Reduces Boilerplate**: Avoid creating numerous single-purpose components for simple tasks.
 
------
+---
 
 ## Installation & Setup
 
-### 1\. Plugin Installation
+### 1. Plugin Installation
 
-1.  Copy the plugin files into a new directory: `/plugins/mercator/ajaxdispatcher/`.
+1.  Place the plugin files into a new directory: `/plugins/mercator/dynamicajax/`.
+2.  Register the component in your `Plugin.php` file with the alias `ajaxDispatcher`.
+3.  Run `php artisan winter:up` to register the plugin with the system.
 
-2.  Run the database migrations to register the plugin with the system.
+### 2. Frontend Dependencies
 
-    ```bash
-    php artisan winter:up
-    ```
-
-### 2\. Frontend Dependencies
-
-For the AJAX functionality to work, your pages must include **jQuery** and the **WinterCMS AJAX framework**. Place the following tags in your CMS layout or page, typically before the closing `</body>` tag. The `extras` parameter is recommended for features like loading indicators and flash messages.
+For the AJAX functionality to work on your pages, you must include **jQuery** and the **WinterCMS AJAX framework**. Place the following tags in your CMS layout or page, typically before the closing `</body>` tag. The `extras` parameter is recommended for features like loading indicators and flash messages.
 
 ```twig
 <script src="{{ 'assets/javascript/jquery.js' | theme }}"></script>
 {% framework extras %}
 ```
 
-### 3\. Attaching the Component
+### 3. Attaching the Component
 
-Attach the `AJAX Dispatcher` component to any page or layout where you intend to use it. This makes the `ajaxDispatcher::onRequest` handler available.
+Attach the `AJAX Dispatcher` component to any page or layout where you intend to use its functionality. This makes the `ajaxDispatcher::onRequest` handler available to your frontend markup.
 
 ```twig
 [ajaxDispatcher]
 ```
 
------
+---
 
 ## How It Works
 
-The dispatcher's core functionality is driven by the `handler` key, which you pass via `data-request-data`. This string tells the dispatcher what code to execute.
-
 ### The Handler String
 
-The handler string follows a specific format using `::` as a separator.
+The dispatcher's core functionality is driven by the `handler` key, which you pass via `data-request-data`. This string tells the dispatcher what code to execute from your theme's `/blocks/` directory.
 
-#### 1\. Procedural Function Call
+#### Procedural Function Call
 
-This format is ideal for simple, self-contained functions.
+-   **Format**: `'filename::functionName'`
+-   **Example**: `handler: 'greeter::sayHello'`
+    -   `greeter`: The dispatcher will load the file `greeter.php`.
+    -   `sayHello`: The dispatcher will call the `sayHello()` function within that file.
 
-  * **Format**: `'filename::functionName'`
-  * **Example**: `handler: 'greeter::sayHello'`
-      * `greeter`: The dispatcher will look for a file named `greeter.php`.
-      * `sayHello`: The dispatcher will call the `sayHello()` function within that file.
+#### Class Method Call
 
-#### 2\. Class Method Call
+-   **Format**: `'filename::Namespace\ClassName::methodName'`
+-   **Example**: `handler: 'greeterClass::Greeter\GreeterActions::sayGoodbye'`
+    -   `greeterClass`: The dispatcher will load the file `greeterClass.php`.
+    -   `Greeter\GreeterActions`: The fully namespaced class to instantiate.
+    -   `sayGoodbye`: The method to call on the new class instance.
 
-This format is better for organizing more complex logic in an object-oriented way.
+### Passing Parameters
 
-  * **Format**: `'filename::Namespace\ClassName::methodName'`
-  * **Example**: `handler: 'greeterClass::Greeter\GreeterActions::sayGoodbye'`
-      * `greeterClass`: The dispatcher will look for a file named `greeterClass.php`.
-      * `Greeter\GreeterActions`: The fully namespaced class to instantiate.
-      * `sayGoodbye`: The method to call on the new class instance.
+The dispatcher automatically provides your PHP handlers with the data they need by inspecting the function/method signature and matching parameter names with keys in the POST data. Data can come from:
 
-### Parameter Resolution
+-   Standard `<input>` fields within a submitted `<form>`.
+-   The `data-request-data` attribute.
 
-The dispatcher automatically provides your PHP functions with the data they need. It inspects the parameters of your function/method and looks for matching keys in the POST data sent by the AJAX request.
+### Secure Parameters via Encryption
 
-If your PHP function is `sayHello($userName)`, the dispatcher will look for `userName` in the form inputs or `data-request-data` and pass its value to the `$userName` parameter.
+For sensitive data like record IDs that you don't want the user to be able to modify in their browser, you can use parameter encryption.
 
------
+> **Important**: This feature is for **preventing client-side tampering**, not for securing data in transit. For transit security, you **must use HTTPS**.
 
-## Complete Usage Example
+The dispatcher will automatically decrypt any parameter key that is prefixed with `encrypted_`.
 
-This example demonstrates all features of the dispatcher.
+1.  **On the server (page render)**, encrypt your data using `Crypt::encryptString()`.
+2.  **In your markup**, send this encrypted string with the `encrypted_` prefix (e.g., `encrypted_recordId`).
+3.  **The Dispatcher** receives the request, detects the prefix, decrypts the value, and passes the clean, original value to your handler (e.g., `onDelete($recordId)`).
 
-### PHP Handler Files
+### Returning Data
 
-Create the following two files in your theme's `/blocks/` directory.
+Your PHP handlers should return data in the format expected by the WinterCMS AJAX framework. Typically, this is an array where keys are CSS selectors and values are the new HTML content for those selectors.
 
-#### `/themes/your-theme/blocks/greeter.php`
+```php
+return ['#myDiv' => 'New content here!'];
+```
+
+---
+
+## Complete Walkthrough Example
+
+This example demonstrates all features, including a secure delete button.
+
+### Step 1: Create the PHP Logic
+
+Place the following files in `/themes/your-theme/blocks/`.
+
+#### `greeter.php` (Procedural)
 
 ```php
 <?php
-
-/**
- * Procedural function for simple actions.
- */
-function sayHello($userName)
-{
-    // Sanitize the name for display.
+function sayHello($userName) {
     $sanitizedName = htmlspecialchars($userName, ENT_QUOTES, 'UTF-8');
-
-    $greeting = '<p style="color: green;">A special hello to ' . $sanitizedName . '!</p>';
-
-    // The key is a CSS selector, the value is the HTML to inject.
-    return ['#greetingResult' => $greeting];
+    return ['#resultDiv' => '<p style="color: green;">Hello, ' . $sanitizedName . '!</p>'];
 }
 ```
 
-#### `/themes/your-theme/blocks/greeterClass.php`
+#### `greeterClass.php` (Class-based)
 
 ```php
 <?php
 namespace Greeter;
 
-class GreeterActions
-{
-    /**
-     * Class-based method for more organized logic.
-     */
-    public function sayGoodbye($userName = 'friend')
-    {
+class GreeterActions {
+    public function sayGoodbye($userName = 'friend') {
         $sanitizedName = htmlspecialchars($userName, ENT_QUOTES, 'UTF-8');
-
-        $goodbye = '<p style="color: blue;">Goodbye for now, ' . $sanitizedName . '!</p>';
-
-        return ['#greetingResult' => $goodbye];
+        return ['#resultDiv' => '<p style="color: blue;">Goodbye, ' . $sanitizedName . '!</p>'];
     }
 }
 ```
 
-### Block / Partial Markup
+#### `deleter.php` (Secure Handler)
 
-Use this markup in a block or partial. Remember to attach the `ajaxDispatcher` component to the page/layout.
+```php
+<?php
+function onDelete($recordId) {
+    // In a real app, you would delete the record.
+    // MyModel::destroy($recordId);
+    return ['#resultDiv' => '<p style="color: red;">Deleted record with ID: ' . e($recordId) . '</p>'];
+}
+```
+
+### Step 2: Create the Block Markup
+
+Create a block file (`.block` or `.htm`) that uses the handlers. This example includes a PHP section to encrypt the ID for the secure delete button.
 
 ```twig
+name: Dispatcher Examples
+tags: ["pages"]
+==
+<?php
+function onStart()
+{
+    // Encrypt a record ID for the secure delete button.
+    $this['secureId'] = Crypt::encryptString(123);
+}
+?>
+==
 <div style="border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
-    <h3>Example 1: Greet a pre-defined person (Procedural)</h3>
-    <p>These buttons call the `sayHello` function in `greeter.php`.</p>
-    <div>
-        <button
-            type="button"
-            data-request="ajaxDispatcher::onRequest"
-            data-request-data="handler: 'greeter::sayHello', userName: 'Mary'"
-            data-attach-loading>
-            Greet Mary
-        </button>
-    </div>
-</div>
-
-<div style="border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
-    <h3>Example 2: Greet a custom name from an input (Procedural)</h3>
-    <form
-        data-request="ajaxDispatcher::onRequest"
-        data-request-data="handler: 'greeter::sayHello'"
-    >
-        <div>
-            <input type="text" name="userName" placeholder="Enter a name" style="width: 100%; padding: 8px;">
-        </div>
-        <button type="submit" data-attach-loading style="margin-top: 15px;">
-            Greet Me
-        </button>
+    <h3>Greet a custom name</h3>
+    <form data-request="ajaxDispatcher::onRequest" data-request-data="handler: 'greeter::sayHello'">
+        <input type="text" name="userName" placeholder="Enter a name">
+        <button type="submit" data-attach-loading>Greet Me</button>
     </form>
 </div>
 
-<div style="border: 1px solid #ddd; padding: 20px;">
-    <h3>Example 3: Say Goodbye (Class Method)</h3>
-    <p>This button calls the `sayGoodbye` method on the `GreeterActions` class in `greeterClass.php`.</p>
-    <button
-        type="button"
-        style="background-color: #d9534f; color: white; border: 1px solid #d43f3a;"
-        data-request="ajaxDispatcher::onRequest"
-        data-request-data="handler: 'greeterClass::Greeter\GreeterActions::sayGoodbye', userName: 'Admin'"
-        data-attach-loading>
-        Say Goodbye to Admin
+<div style="border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
+    <h3>Say Goodbye (Class Method)</h3>
+    <button type="button" data-request="ajaxDispatcher::onRequest" data-request-data="handler: 'greeterClass::Greeter\GreeterActions::sayGoodbye', userName: 'Admin'" data-attach-loading>
+        Say Goodbye
     </button>
 </div>
 
-<div id="greetingResult" style="margin-top: 20px; padding: 15px; font-size: 1.2em; text-align: center; border: 1px solid #eee; min-height: 50px;">
+<div style="border: 1px solid #ddd; padding: 20px;">
+    <h3>Secure Delete Action</h3>
+    <button
+        type="button"
+        data-request="ajaxDispatcher::onRequest"
+        data-request-confirm="Are you sure?"
+        data-request-data="handler: 'deleter::onDelete', encrypted_recordId: '{{ secureId }}'"
+        data-attach-loading>
+        Delete Item #123
+    </button>
+</div>
+
+<div id="resultDiv" style="margin-top: 20px; padding: 15px; font-size: 1.2em; text-align: center; border: 1px solid #eee;">
     </div>
 ```
 
------
+---
 
 ## License
 
-The MIT License (MIT). Please see [License File](https://www.google.com/search?q=LICENSE) for more information.
+The MIT License (MIT). Please see the `LICENSE` file for more information.

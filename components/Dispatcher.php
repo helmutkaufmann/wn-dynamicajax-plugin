@@ -5,6 +5,9 @@ use Cms\Classes\Theme;
 use ApplicationException;
 use ReflectionMethod;
 use ReflectionFunction;
+use Log;
+use Crypt;
+use Winter\Storm\Support\Str;
 
 class Dispatcher extends ComponentBase
 {
@@ -12,15 +15,15 @@ class Dispatcher extends ComponentBase
     {
         return [
             'name'        => 'AJAX Dispatcher',
-            'description' => 'Calls functions or class methods from files in the blocks directory of the active theme.'
+            'description' => 'Calls functions or class methods from files in the theme.'
         ];
     }
 
     public function onRequest()
     {
-        
         $handler = post('handler');
         $separatorCount = substr_count($handler, '::');
+        Log::info ("Ajax Dispatcher onRequest: $handler");
 
         if ($separatorCount === 1) {
             // Procedural function call: "file::function"
@@ -54,9 +57,7 @@ class Dispatcher extends ComponentBase
 
     protected function handleMethodCall($fileName, $className, $methodName)
     {
-        
         $handlerPath = $this->getHandlerPath($fileName);
-        
         require_once $handlerPath;
 
         if (!class_exists($className)) {
@@ -92,12 +93,25 @@ class Dispatcher extends ComponentBase
         $argsToPass = [];
         $postData = post();
 
+        // Look for and decrypt any parameters prefixed with 'encrypted_'
+        $decryptedData = [];
+        foreach ($postData as $key => $value) {
+            if (Str::startsWith($key, 'encrypted_')) {
+                try {
+                    // Get the new key name (e.g., 'encrypted_recordId' becomes 'recordId')
+                    $newKey = Str::after($key, 'encrypted_');
+                    $decryptedData[$newKey] = Crypt::decryptString($value);
+                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    throw new ApplicationException('Could not decrypt a required parameter.');
+                }
+            }
+        }
+
+        // Merge decrypted data, giving it priority over any non-encrypted versions
+        $postData = array_merge($postData, $decryptedData);
+
         foreach ($parameters as $param) {
             $paramName = $param->getName();
-            if ($param->getType() && $param->getType()->getName() === self::class) {
-                $argsToPass[] = $this;
-                continue;
-            }
             if (array_key_exists($paramName, $postData)) {
                 $argsToPass[] = $postData[$paramName];
             } elseif ($param->isDefaultValueAvailable()) {
