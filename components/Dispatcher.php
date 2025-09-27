@@ -15,7 +15,7 @@ class Dispatcher extends ComponentBase
     {
         return [
             'name'        => 'AJAX Dispatcher',
-            'description' => 'Calls functions or class methods from files in the theme.'
+            'description' => 'Calls functions or class methods from files in the blocks directory of the current theme.'
         ];
     }
 
