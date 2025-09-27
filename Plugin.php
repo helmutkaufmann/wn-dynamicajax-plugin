@@ -1,42 +1,33 @@
 <?php namespace Mercator\DynamicAjax;
 
 use System\Classes\PluginBase;
-use Log;
+use Crypt;
 
-/**
- * DynamicAjax Plugin Information File
- */
 class Plugin extends PluginBase
 {
-    /**
-     * @var array Plugin dependencies
-     */
-    public $require = [];
-
-    /**
-     * Returns information about this plugin.
-     */
-    public function pluginDetails(): array
+    public function pluginDetails()
     {
         return [
-            'name'        => 'DynamicAjax',
-            'description' => 'A component to use AJAX in WinterCMS Blocks.',
-            'author'      => 'Helmut Kaufmann, software@mercator.li',
-            'icon'        => 'icon-leaf'
+            'name'        => 'AJAX Dispatcher',
+            'description' => 'Provides a centralized component for handling AJAX requests from theme files.',
+            'author'      => 'MyAuthor',
+            'icon'        => 'icon-bolt'
         ];
     }
 
     /**
-     * Registers the front-end components implemented in this plugin.
+     * Register the AJAX Dispatcher component.
      */
-    public function registerComponents(): array
+    public function registerComponents()
     {
-	Log::info("ajaxDispatcher registered");
         return [
-            'Mercator\DynamicAjax\Components\Dispatcher' => 'ajaxDispatcher',
+            'Mercator\DynamicAjax\Components\Dispatcher' => 'ajaxDispatcher'
         ];
     }
-    
+
+    /**
+     * Register custom Twig functions and filters.
+     */
     public function registerMarkupTags()
     {
         // Define the encryption logic once in a closure.
@@ -44,16 +35,17 @@ class Plugin extends PluginBase
             if (is_null($value)) {
                 return null;
             }
-            return Crypt::encryptString($value);
+            // Use encrypt() to handle arrays and other data types.
+            return Crypt::encrypt($value);
         };
 
         return [
             'functions' => [
-                // Register 'abCrypt' as a function
+                // Register 'parCrypt' as a function
                 'parCrypt' => $encryptClosure
             ],
             'filters' => [
-                // Register 'abCrypt' as a filter
+                // Register 'parCrypt' as a filter
                 'parCrypt' => $encryptClosure
             ]
         ];

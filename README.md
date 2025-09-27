@@ -1,18 +1,12 @@
-You are absolutely correct to question that. My apologies, the previous `README.md` contained an error in the example syntax.
+# AJAX Dispatcher Plugin for Winter CMS Blocks
 
-You must use the `{{ ... }}` Twig syntax to execute the function and output its result into the attribute. Without the curly braces, the `data-request-data` attribute would contain the literal string `"parCrypt(123)"`, not the encrypted value.
-
-Thank you for catching that. Here is the fully corrected `README.md` with the proper syntax.
-
------
-
-# AJAX Dispatcher Plugin for Winter CMS
+![Blocks Plugin Banner](https://github.com/wintercms/wn-blocks-plugin/blob/main/.github/banner.png?raw=true)
 
 A powerful utility component for Winter CMS that allows you to call PHP functions and class methods directly from your theme files via AJAX. This plugin provides a centralized dispatcher, eliminating the need to create separate components for simple, theme-level AJAX interactions.
 
-[](https://www.google.com/search?q=LICENSE)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
------
+---
 
 ## Core Concept
 
@@ -20,26 +14,26 @@ In a typical Winter CMS workflow, adding AJAX functionality to the frontend requ
 
 This plugin solves that problem by providing a single, reusable component (`ajaxDispatcher`) that acts as a router for your theme's AJAX logic. You can keep your PHP logic in simple `.php` files within your theme, and call them directly from your frontend markup using `data-` attributes.
 
------
+---
 
 ## Features
 
-  - **Centralized AJAX Handling**: A single component manages all your theme-level AJAX requests.
-  - **Flexible Handler Calls**: Execute both procedural functions and class methods.
-  - **Automatic Parameter Injection**: The dispatcher intelligently matches data from your request (form inputs, `data-request-data`) to the parameters of your PHP handler function by name.
-  - **Secure Parameter Handling**: Automatically decrypts parameters prefixed with `encrypted_` to prevent client-side tampering of sensitive data like record IDs.
-  - **`parCrypt` Twig Function & Filter**: A helper to easily encrypt data directly in your markup.
+-   **Centralized AJAX Handling**: A single component manages all your theme-level AJAX requests.
+-   **Flexible Handler Calls**: Execute both procedural functions and class methods.
+-   **Automatic Parameter Injection**: The dispatcher intelligently matches data from your request (form inputs, `data-request-data`) to the parameters of your PHP handler function by name.
+-   **Secure Parameter Handling**: Automatically decrypts parameters prefixed with `encrypted_` to prevent client-side tampering of sensitive data like record IDs.
+-   **`parCrypt` Twig Function & Filter**: A helper to easily encrypt any data structure (strings, arrays, etc.) directly in your markup.
 
------
+---
 
 ## Installation & Setup
 
-### 1\. Plugin Installation
+### 1. Plugin Installation
 
 1.  Place the plugin files into a new directory: `/plugins/mercator/ajaxdispatcher/`.
 2.  Run `php artisan winter:up` to register the plugin with the system.
 
-### 2\. Frontend Dependencies
+### 2. Frontend Dependencies
 
 For the AJAX functionality to work on your pages, you must include **jQuery** and the **WinterCMS AJAX framework**. Place the following tags in your CMS layout or page, typically before the closing `</body>` tag. The `extras` parameter is recommended for features like loading indicators and flash messages.
 
@@ -48,7 +42,7 @@ For the AJAX functionality to work on your pages, you must include **jQuery** an
 {% framework extras %}
 ```
 
-### 3\. Attaching the Component
+### 3. Attaching the Component
 
 Attach the `AJAX Dispatcher` component to any page or layout where you intend to use its functionality. This makes the `ajaxDispatcher::onRequest` handler available to your frontend markup.
 
@@ -56,7 +50,7 @@ Attach the `AJAX Dispatcher` component to any page or layout where you intend to
 [ajaxDispatcher]
 ```
 
------
+---
 
 ## How It Works
 
@@ -64,8 +58,8 @@ Attach the `AJAX Dispatcher` component to any page or layout where you intend to
 
 The dispatcher's core functionality is driven by the `handler` key, which you pass via `data-request-data`. This string tells the dispatcher what code to execute from your theme's `/blocks/` directory.
 
-  * **Procedural Function Call**: `'filename::functionName'`
-  * **Class Method Call**: `'filename::Namespace\ClassName::methodName'`
+* **Procedural Function Call**: `'filename::functionName'`
+* **Class Method Call**: `'filename::Namespace\ClassName::methodName'`
 
 ### `parCrypt` Twig Function & Filter
 
@@ -93,7 +87,7 @@ For sensitive data like record IDs that you don't want the user to be able to mo
 2.  The **Dispatcher** receives the request, detects the `encrypted_` prefix, decrypts the value.
 3.  The clean, original value is passed to your PHP handler.
 
------
+---
 
 ## Complete Walkthrough Example
 
@@ -159,7 +153,7 @@ Use this markup in a block or partial.
     </div>
 ```
 
------
+---
 
 ## License
 

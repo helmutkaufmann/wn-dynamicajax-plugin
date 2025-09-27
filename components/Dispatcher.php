@@ -100,7 +100,7 @@ class Dispatcher extends ComponentBase
                 try {
                     // Get the new key name (e.g., 'encrypted_recordId' becomes 'recordId')
                     $newKey = Str::after($key, 'encrypted_');
-                    $decryptedData[$newKey] = Crypt::decryptString($value);
+                    $decryptedData[$newKey] = Crypt::decrypt($value);
                 } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
                     throw new ApplicationException('Could not decrypt a required parameter.');
                 }
