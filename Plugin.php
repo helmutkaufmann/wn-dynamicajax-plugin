@@ -20,7 +20,7 @@ class Plugin extends PluginBase
     {
         return [
             'name'        => 'DynamicAjax',
-            'description' => 'A dispatcher component for dynamic AJAX handling in templates.',
+            'description' => 'A component to use AJAX in WinterCMS Blocks.',
             'author'      => 'Helmut Kaufmann, software@mercator.li',
             'icon'        => 'icon-leaf'
         ];
