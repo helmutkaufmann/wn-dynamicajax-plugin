@@ -1,0 +1,117 @@
+<?php namespace Mercator\DynamicAjax\Components;
+
+use Cms\Classes\ComponentBase;
+use Cms\Classes\Theme;
+use ApplicationException;
+use ReflectionMethod;
+use ReflectionFunction;
+use Log;
+
+class Dispatcher extends ComponentBase
+{
+    public function componentDetails(): array
+    {
+        return [
+            'name'        => 'AJAX Dispatcher',
+            'description' => 'Calls functions or class methods from files in the theme.'
+        ];
+    }
+
+    public function onRequest()
+    {
+        
+        $handler = post('handler');
+        $separatorCount = substr_count($handler, '::');
+        Log::info ("Ajax Dispatcher onRequest: $handler");
+
+        if ($separatorCount === 1) {
+            // Procedural function call: "file::function"
+            list($fileName, $functionName) = explode('::', $handler, 2);
+            return $this->handleFunctionCall($fileName, $functionName);
+        }
+
+        if ($separatorCount === 2) {
+            // Class method call: "file::Namespace\Class::method"
+            list($fileName, $className, $methodName) = explode('::', $handler, 3);
+            return $this->handleMethodCall($fileName, $className, $methodName);
+        }
+
+        throw new ApplicationException('Invalid handler format. Expected "file::function" or "file::Class::method".');
+    }
+
+    protected function handleFunctionCall($fileName, $functionName)
+    {
+        $handlerPath = $this->getHandlerPath($fileName);
+        require_once $handlerPath;
+
+        if (!function_exists($functionName)) {
+            throw new ApplicationException(sprintf('AJAX handler function [%s()] not found.', e($functionName)));
+        }
+
+        $reflection = new ReflectionFunction($functionName);
+        $args = $this->resolveParameters($reflection->getParameters());
+
+        return call_user_func_array($functionName, $args);
+    }
+
+    protected function handleMethodCall($fileName, $className, $methodName)
+    {
+        
+        $handlerPath = $this->getHandlerPath($fileName);
+        
+        Log::error("handleMethodCall $handlerPath");
+                  
+        require_once $handlerPath;
+
+        if (!class_exists($className)) {
+            throw new ApplicationException(sprintf('AJAX handler class [%s] not found.', e($className)));
+        }
+
+        $instance = new $className();
+
+        if (!method_exists($instance, $methodName)) {
+            throw new ApplicationException(sprintf('AJAX handler method [%s] not found in class [%s].', e($methodName), e($className)));
+        }
+
+        $reflection = new ReflectionMethod($className, $methodName);
+        $args = $this->resolveParameters($reflection->getParameters());
+
+        return call_user_func_array([$instance, $methodName], $args);
+    }
+
+    protected function getHandlerPath($fileName)
+    {
+        $safeFileName = basename($fileName);
+        $path = Theme::getActiveTheme()->getPath() . '/blocks/' . $safeFileName . '.php';
+
+        if (!file_exists($path)) {
+            throw new ApplicationException(sprintf('AJAX handler file [%s.php] not found.', e($safeFileName)));
+        }
+
+        Log::info("getHandlerPath $path");
+        return $path;
+    }
+
+    protected function resolveParameters(array $parameters)
+    {
+        $argsToPass = [];
+        $postData = post();
+
+        foreach ($parameters as $param) {
+            $paramName = $param->getName();
+            if ($param->getType() && $param->getType()->getName() === self::class) {
+                $argsToPass[] = $this;
+                continue;
+            }
+            if (array_key_exists($paramName, $postData)) {
+                $argsToPass[] = $postData[$paramName];
+            } elseif ($param->isDefaultValueAvailable()) {
+                $argsToPass[] = $param->getDefaultValue();
+            } else {
+                throw new ApplicationException(sprintf("Missing required parameter: '%s'", $paramName));
+            }
+        }
+
+        return $argsToPass;
+    }
+}
