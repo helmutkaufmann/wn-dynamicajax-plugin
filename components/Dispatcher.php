@@ -5,7 +5,6 @@ use Cms\Classes\Theme;
 use ApplicationException;
 use ReflectionMethod;
 use ReflectionFunction;
-use Log;
 
 class Dispatcher extends ComponentBase
 {
@@ -22,7 +21,6 @@ class Dispatcher extends ComponentBase
         
         $handler = post('handler');
         $separatorCount = substr_count($handler, '::');
-        Log::info ("Ajax Dispatcher onRequest: $handler");
 
         if ($separatorCount === 1) {
             // Procedural function call: "file::function"
@@ -59,8 +57,6 @@ class Dispatcher extends ComponentBase
         
         $handlerPath = $this->getHandlerPath($fileName);
         
-        Log::error("handleMethodCall $handlerPath");
-                  
         require_once $handlerPath;
 
         if (!class_exists($className)) {
@@ -88,7 +84,6 @@ class Dispatcher extends ComponentBase
             throw new ApplicationException(sprintf('AJAX handler file [%s.php] not found.', e($safeFileName)));
         }
 
-        Log::info("getHandlerPath $path");
         return $path;
     }
 
