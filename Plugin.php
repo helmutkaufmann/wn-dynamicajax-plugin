@@ -36,4 +36,26 @@ class Plugin extends PluginBase
             'Mercator\DynamicAjax\Components\Dispatcher' => 'ajaxDispatcher',
         ];
     }
+    
+    public function registerMarkupTags()
+    {
+        // Define the encryption logic once in a closure.
+        $encryptClosure = function ($value) {
+            if (is_null($value)) {
+                return null;
+            }
+            return Crypt::encryptString($value);
+        };
+
+        return [
+            'functions' => [
+                // Register 'abCrypt' as a function
+                'parCrypt' => $encryptClosure
+            ],
+            'filters' => [
+                // Register 'abCrypt' as a filter
+                'parCrypt' => $encryptClosure
+            ]
+        ];
+    }
 }
