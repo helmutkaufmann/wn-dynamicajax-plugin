@@ -23,7 +23,7 @@ class Dispatcher extends ComponentBase
     {
         $handler = post('handler');
         $separatorCount = substr_count($handler, '::');
-        Log::info ("Ajax Dispatcher onRequest: $handler");
+        // Log::info ("Ajax Dispatcher onRequest: $handler");
 
         if ($separatorCount === 1) {
             // Procedural function call: "file::function"
