@@ -1,50 +1,39 @@
-# AJAX Dispatcher Plugin for Winter CMS Blocks
+# AJAX Dispatcher — Mercator plugin for Winter CMS
 
-![Blocks Plugin Banner](https://github.com/wintercms/wn-blocks-plugin/blob/main/.github/banner.png?raw=true)
-
-A powerful utility component for Winter CMS that allows you to call PHP functions and class methods directly from your theme files via AJAX. This plugin provides a centralized dispatcher, eliminating the need to create separate components for simple, theme-level AJAX interactions.
+A utility component that lets you call PHP functions and class methods from block markup via AJAX, without writing a full Winter CMS component. A single `ajaxDispatcher` component routes all theme-level AJAX requests to the right handler.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
 
-## Core Concept
-
-In a typical Winter CMS workflow, adding AJAX functionality to the frontend requires defining a component and an AJAX handler within it. While powerful, this can be cumbersome for small, repeated interactions, especially in a block-based or modular theme design.
-
-This plugin solves that problem by providing a single, reusable component (`ajaxDispatcher`) that acts as a router for your theme's AJAX logic. You can keep your PHP logic in simple `.php` files within your theme, and call them directly from your frontend markup using `data-` attributes.
-
----
-
-## Features
-
--   **Centralized AJAX Handling**: A single component manages all your theme-level AJAX requests.
--   **Flexible Handler Calls**: Execute both procedural functions and class methods.
--   **Automatic Parameter Injection**: The dispatcher intelligently matches data from your request (form inputs, `data-request-data`) to the parameters of your PHP handler function by name.
--   **Secure Parameter Handling**: Automatically decrypts parameters prefixed with `encrypted_` to prevent client-side tampering of sensitive data like record IDs.
--   **`parCrypt` Twig Function & Filter**: A helper to easily encrypt any data structure (strings, arrays, etc.) directly in your markup.
-
----
-
 ## Installation & Setup
 
-### 1. Plugin Installation
+### 1. Plugin
 
-1.  Place the plugin files into a new directory: `/plugins/mercator/ajaxdispatcher/`.
-2.  Run `php artisan winter:up` to register the plugin with the system.
+Place the plugin files in:
 
-### 2. Frontend Dependencies
+```
+plugins/mercator/dynamicajax
+```
 
-For the AJAX functionality to work on your pages, you must include **jQuery** and the **WinterCMS AJAX framework**. Place the following tags in your CMS layout or page, typically before the closing `</body>` tag. The `extras` parameter is recommended for features like loading indicators and flash messages.
+Then run:
+
+```bash
+php artisan winter:up
+```
+
+### 2. Frontend dependencies
+
+Include jQuery and the Winter CMS AJAX framework in your layout, before `</body>`:
 
 ```twig
 <script src="{{ 'assets/javascript/jquery.js' | theme }}"></script>
 {% framework extras %}
 ```
 
-### 3. Attaching the Component
+### 3. Attach the component
 
-Attach the `AJAX Dispatcher` component to any page or layout where you intend to use its functionality. This makes the `ajaxDispatcher::onRequest` handler available to your frontend markup.
+Add `ajaxDispatcher` to any page or layout where you want to use it:
 
 ```twig
 [ajaxDispatcher]
@@ -54,50 +43,48 @@ Attach the `AJAX Dispatcher` component to any page or layout where you intend to
 
 ## How It Works
 
-### The Handler String
+### The handler string
 
-The dispatcher's core functionality is driven by the `handler` key, which you pass via `data-request-data`. This string tells the dispatcher what code to execute from your theme's `/blocks/` directory.
+Pass a `handler` key via `data-request-data` to tell the dispatcher what to call. It looks for the PHP file in:
 
-* **Procedural Function Call**: `'filename::functionName'`
-* **Class Method Call**: `'filename::Namespace\ClassName::methodName'`
+1. `themes/your-theme/blocks/<filename>.php`
+2. `plugins/mercator/blocks/blocks/<filename>.php`
 
-### `parCrypt` Twig Function & Filter
-
-This plugin provides the `parCrypt` helper, available as both a function and a filter, to easily encrypt values for secure parameter handling. **You must wrap the call in `{{ ... }}` to execute it.**
-
-> **Note on Salting**: Winter's encryption automatically includes a unique signature and Initialization Vector (IV) with every encrypted value. This serves the same purpose as a salt, ensuring that the output is always unique and secure without requiring you to manage salts manually.
-
-**As a function:**
-
-```twig
-data-request-data="encrypted_recordId: '{{ parCrypt(123) }}'"
+**Procedural function:**
+```
+handler: 'filename::functionName'
 ```
 
-**As a filter:**
+**Class method:**
+```
+handler: 'filename::Namespace\ClassName::methodName'
+```
+
+### Automatic parameter injection
+
+The dispatcher matches POST keys and `data-request-data` values to your PHP function's parameter names. No manual `post()` calls needed.
+
+### Secure parameters with `parCrypt`
+
+Prefix any parameter with `encrypted_` and the dispatcher will automatically decrypt it before passing it to your handler. Use the `parCrypt` Twig function or filter to encrypt values in your markup:
 
 ```twig
+{{-- as a function --}}
+data-request-data="encrypted_recordId: '{{ parCrypt(123) }}'"
+
+{{-- as a filter --}}
 data-request-data="encrypted_recordId: '{{ 123 | parCrypt }}'"
 ```
 
-### Secure Parameters via Encryption
-
-For sensitive data like record IDs that you don't want the user to be able to modify, you can use parameter encryption. The dispatcher will automatically decrypt any parameter key that is prefixed with `encrypted_`.
-
-1.  **In your markup**, use the `parCrypt` function or filter (wrapped in `{{ }}`) to encrypt the value.
-2.  The **Dispatcher** receives the request, detects the `encrypted_` prefix, decrypts the value.
-3.  The clean, original value is passed to your PHP handler.
-
 ---
 
-## Complete Walkthrough Example
+## Example
 
-This example demonstrates a form, a class-based handler, and a secure action using the `parCrypt` filter.
+### PHP handlers
 
-### Step 1: Create the PHP Logic
+Place these in `themes/your-theme/blocks/`.
 
-Place the following files in `/themes/your-theme/blocks/`.
-
-#### `greeterClass.php` (Class-based)
+**`greeterClass.php`** (class method):
 
 ```php
 <?php
@@ -105,56 +92,45 @@ namespace Greeter;
 
 class GreeterActions {
     public function sayHello($userName) {
-        $sanitizedName = htmlspecialchars($userName, ENT_QUOTES, 'UTF-8');
-        return ['#resultDiv' => '<p style="color: green;">Hello, ' . $sanitizedName . '!</p>'];
+        return ['#resultDiv' => '<p>Hello, ' . e($userName) . '!</p>'];
     }
 }
 ```
 
-#### `deleter.php` (Secure Handler)
+**`deleter.php`** (procedural, with encrypted parameter):
 
 ```php
 <?php
 function onDelete($recordId) {
-    // In a real app, you would delete the record.
-    return ['#resultDiv' => '<p style="color: red;">Deleted record with ID: ' . e($recordId) . '</p>'];
+    // $recordId is already decrypted
+    return ['#resultDiv' => '<p>Deleted record #' . e($recordId) . '</p>'];
 }
 ```
 
-### Step 2: Create the Block Markup
-
-Use this markup in a block or partial.
+### Block markup
 
 ```twig
-<div style="border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
-    <h3>Greet a custom name (Class Method)</h3>
-    <form
-        data-request="ajaxDispatcher::onRequest"
-        data-request-data="handler: 'greeterClass::Greeter\GreeterActions::sayHello'">
-        <input type="text" name="userName" placeholder="Enter a name">
-        <button type="submit" data-attach-loading>Greet Me</button>
-    </form>
-</div>
+<form
+    data-request="ajaxDispatcher::onRequest"
+    data-request-data="handler: 'greeterClass::Greeter\GreeterActions::sayHello'">
+    <input type="text" name="userName" placeholder="Enter a name">
+    <button type="submit" data-attach-loading>Greet Me</button>
+</form>
 
-<div style="border: 1px solid #ddd; padding: 20px;">
-    <h3>Secure Delete Action</h3>
-    <p>The record ID (123) is encrypted directly in the markup using a Twig filter.</p>
-    <button
-        type="button"
-        data-request="ajaxDispatcher::onRequest"
-        data-request-confirm="Are you sure?"
-        data-request-data="handler: 'deleter::onDelete', encrypted_recordId: '{{ 123 | parCrypt }}'"
-        data-attach-loading>
-        Delete Item #123
-    </button>
-</div>
+<button
+    type="button"
+    data-request="ajaxDispatcher::onRequest"
+    data-request-confirm="Are you sure?"
+    data-request-data="handler: 'deleter::onDelete', encrypted_recordId: '{{ 123 | parCrypt }}'"
+    data-attach-loading>
+    Delete Item #123
+</button>
 
-<div id="resultDiv" style="margin-top: 20px; padding: 15px; text-align: center;">
-    </div>
+<div id="resultDiv"></div>
 ```
 
 ---
 
 ## License
 
-The MIT License (MIT). Please see the `LICENSE` file for more information.
+The MIT License (MIT). See `LICENSE`.
