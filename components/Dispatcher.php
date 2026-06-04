@@ -79,13 +79,19 @@ class Dispatcher extends ComponentBase
     protected function getHandlerPath($fileName)
     {
         $safeFileName = basename($fileName);
-        $path = Theme::getActiveTheme()->getPath() . '/blocks/' . $safeFileName . '.php';
 
-        if (!file_exists($path)) {
-            throw new ApplicationException(sprintf('AJAX handler file [%s.php] not found.', e($safeFileName)));
+        $candidates = [
+            Theme::getActiveTheme()->getPath() . '/blocks/' . $safeFileName . '.php',
+            plugins_path('mercator/blocks/blocks/' . $safeFileName . '.php'),
+        ];
+
+        foreach ($candidates as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
         }
 
-        return $path;
+        throw new ApplicationException(sprintf('AJAX handler file [%s.php] not found.', e($safeFileName)));
     }
 
     protected function resolveParameters(array $parameters)
